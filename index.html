@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>רשימת קניות מקומית</title>
+    
+    <!-- טעינת פונט עגול וידידותי (Fredoka - החלופה החינמית לשוקו) מ-Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- טעינת העיצוב (Tailwind CSS) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- הגדרת הפונט החדש כברירת המחדל באפליקציה -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Fredoka', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <!-- טעינת האייקונים (Lucide) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- טעינת React ו-Babel -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body class="bg-slate-50 selection:bg-blue-100">
+    
+    <!-- כאן האפליקציה תוצג -->
+    <div id="root"></div>
+
+    <!-- קוד האפליקציה -->
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        const App = () => {
+            // טעינת הרשימה מהזיכרון המקומי של הדפדפן (LocalStorage)
+            const [items, setItems] = useState(() => {
+                const savedItems = localStorage.getItem('my_local_grocery_list');
+                return savedItems ? JSON.parse(savedItems) : [];
+            });
+            const [newItem, setNewItem] = useState('');
+
+            // בכל פעם שהרשימה משתנה, נשמור אותה שוב בזיכרון המקומי ונטען אייקונים
+            useEffect(() => {
+                localStorage.setItem('my_local_grocery_list', JSON.stringify(items));
+                if (window.lucide) {
+                    window.lucide.createIcons();
+                }
+            }, [items]);
+
+            // הוספת מוצר
+            const handleAdd = (e) => {
+                e.preventDefault();
+                if (!newItem.trim()) return;
+                
+                const newItemObj = {
+                    id: Date.now().toString(),
+                    name: newItem.trim(),
+                    completed: false
+                };
+                
+                setItems([...items, newItemObj]);
+                setNewItem('');
+            };
+
+            // סימון מוצר כ"נקנה"
+            const toggleItem = (id) => {
+                setItems(items.map(item => 
+                    item.id === id ? { ...item, completed: !item.completed } : item
+                ));
+            };
+
+            // מחיקת מוצר
+            const deleteItem = (id) => {
+                setItems(items.filter(item => item.id !== id));
+            };
+
+            // ניקוי כל הרשימה
+            const clearList = () => {
+                if(confirm("למחוק את כל הרשימה?")) {
+                    setItems([]);
+                }
+            };
+
+            const activeItems = items.filter(i => !i.completed);
+            const completedItems = items.filter(i => i.completed);
+
+            return (
+                <div className="min-h-screen pb-24 font-sans max-w-md mx-auto relative shadow-2xl bg-slate-50">
+                    {/* כותרת עליונה */}
+                    <header className="bg-white shadow-sm sticky top-0 z-30 px-6 py-5 border-b flex justify-between items-center">
+                        <div className="flex items-center gap-3">
+                            <div className="bg-blue-600 p-2.5 rounded-xl shadow-md">
+                                <i data-lucide="shopping-cart" className="text-white w-6 h-6"></i>
+                            </div>
+                            <div>
+                                <h2 className="font-black text-slate-800 text-xl leading-none">רשימת הקניות שלי</h2>
+                            </div>
+                        </div>
+                        {items.length > 0 && (
+                            <button onClick={clearList} className="text-slate-400 hover:text-red-500 p-2 bg-slate-100 rounded-lg transition-colors">
+                                <i data-lucide="trash" className="w-5 h-5"></i>
+                            </button>
+                        )}
+                    </header>
+
+                    <main className="p-5 space-y-6 mt-2">
+                        {/* שורת הוספת מוצר */}
+                        <form onSubmit={handleAdd} className="relative shadow-xl rounded-[2rem]">
+                            <input 
+                                value={newItem} 
+                                onChange={e => setNewItem(e.target.value)}
+                                className="w-full px-6 py-5 rounded-[2rem] border-none bg-white focus:ring-4 focus:ring-blue-100 outline-none text-xl pr-16 transition-all"
+                                placeholder="מה צריך לקנות?"
+                            />
+                            <button type="submit" className="absolute left-2.5 top-2.5 bottom-2.5 bg-blue-600 text-white px-6 rounded-[1.5rem] font-black text-xl hover:bg-blue-700 transition-all flex items-center justify-center shadow-md active:scale-95">
+                                <i data-lucide="plus" className="w-6 h-6"></i>
+                            </button>
+                        </form>
+
+                        {/* הצגת המוצרים */}
+                        <div className="space-y-3">
+                            {items.length === 0 ? (
+                                <div className="py-20 text-center animate-pulse">
+                                    <div className="bg-white w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-slate-100">
+                                        <i data-lucide="shopping-bag" className="text-slate-200 w-12 h-12"></i>
+                                    </div>
+                                    <p className="text-slate-400 font-bold text-lg">הרשימה ריקה.</p>
+                                </div>
+                            ) : (
+                                <>
+                                    {/* מוצרים שעוד לא נקנו */}
+                                    {activeItems.map(item => (
+                                        <div key={item.id} className="bg-white rounded-[1.5rem] p-5 flex items-center justify-between shadow-sm border border-slate-100 group">
+                                            <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => toggleItem(item.id)}>
+                                                <i data-lucide="circle" className="text-slate-300 w-7 h-7 flex-shrink-0 group-hover:text-blue-300 transition-colors"></i>
+                                                <p className="text-xl text-slate-800">{item.name}</p>
+                                            </div>
+                                            <button onClick={() => deleteItem(item.id)} className="p-2 text-slate-200 hover:text-red-500 transition-colors">
+                                                <i data-lucide="x" className="w-6 h-6"></i>
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    {/* מוצרים שנקנו */}
+                                    {completedItems.length > 0 && (
+                                        <div className="pt-6 space-y-3">
+                                            <div className="flex items-center gap-3 px-2">
+                                                <div className="h-px flex-1 bg-slate-200"></div>
+                                                <p className="text-[11px] font-black text-slate-300 uppercase tracking-widest">כבר בעגלה</p>
+                                                <div className="h-px flex-1 bg-slate-200"></div>
+                                            </div>
+                                            
+                                            {completedItems.map(item => (
+                                                <div key={item.id} className="bg-slate-100/50 rounded-[1.5rem] p-4 flex items-center justify-between opacity-60">
+                                                    <div className="flex items-center gap-4 flex-1 cursor-pointer" onClick={() => toggleItem(item.id)}>
+                                                        <i data-lucide="check-circle-2" className="text-green-500 w-7 h-7 flex-shrink-0"></i>
+                                                        <p className="text-lg text-slate-500 line-through">{item.name}</p>
+                                                    </div>
+                                                    <button onClick={() => deleteItem(item.id)} className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                                                        <i data-lucide="x" className="w-5 h-5"></i>
+                                                    </button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </main>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
